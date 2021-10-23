@@ -1,4 +1,4 @@
-package litestream_test
+package litestream
 
 import (
 	"context"
@@ -8,19 +8,17 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/benbjohnson/litestream"
 )
 
 func TestDB_Path(t *testing.T) {
-	db := litestream.NewDB("/tmp/db")
+	db := NewDB("/tmp/db")
 	if got, want := db.Path(), `/tmp/db`; got != want {
 		t.Fatalf("Path()=%v, want %v", got, want)
 	}
 }
 
 func TestDB_WALPath(t *testing.T) {
-	db := litestream.NewDB("/tmp/db")
+	db := NewDB("/tmp/db")
 	if got, want := db.WALPath(), `/tmp/db-wal`; got != want {
 		t.Fatalf("WALPath()=%v, want %v", got, want)
 	}
@@ -28,13 +26,13 @@ func TestDB_WALPath(t *testing.T) {
 
 func TestDB_MetaPath(t *testing.T) {
 	t.Run("Absolute", func(t *testing.T) {
-		db := litestream.NewDB("/tmp/db")
+		db := NewDB("/tmp/db")
 		if got, want := db.MetaPath(), `/tmp/db-litestream`; got != want {
 			t.Fatalf("MetaPath()=%v, want %v", got, want)
 		}
 	})
 	t.Run("Relative", func(t *testing.T) {
-		db := litestream.NewDB("db")
+		db := NewDB("db")
 		if got, want := db.MetaPath(), `db-litestream`; got != want {
 			t.Fatalf("MetaPath()=%v, want %v", got, want)
 		}
@@ -42,21 +40,21 @@ func TestDB_MetaPath(t *testing.T) {
 }
 
 func TestDB_GenerationNamePath(t *testing.T) {
-	db := litestream.NewDB("/tmp/db")
+	db := NewDB("/tmp/db")
 	if got, want := db.GenerationNamePath(), `/tmp/db-litestream/generation`; got != want {
 		t.Fatalf("GenerationNamePath()=%v, want %v", got, want)
 	}
 }
 
 func TestDB_GenerationPath(t *testing.T) {
-	db := litestream.NewDB("/tmp/db")
+	db := NewDB("/tmp/db")
 	if got, want := db.GenerationPath("xxxx"), `/tmp/db-litestream/generations/xxxx`; got != want {
 		t.Fatalf("GenerationPath()=%v, want %v", got, want)
 	}
 }
 
 func TestDB_ShadowWALDir(t *testing.T) {
-	db := litestream.NewDB("/tmp/db")
+	db := NewDB("/tmp/db")
 	if got, want := db.ShadowWALDir("xxxx"), `/tmp/db-litestream/generations/xxxx/wal`; got != want {
 		t.Fatalf("ShadowWALDir()=%v, want %v", got, want)
 	}
@@ -143,7 +141,7 @@ func TestDB_CRC64(t *testing.T) {
 		}
 
 		// Checkpoint change into database. Checksum should change.
-		if err := db.Checkpoint(context.Background(), litestream.CheckpointModeTruncate); err != nil {
+		if err := db.Checkpoint(context.Background(), CheckpointModeTruncate); err != nil {
 			t.Fatal(err)
 		}
 
@@ -225,7 +223,7 @@ func TestDB_Sync(t *testing.T) {
 			t.Fatal("expected the same generation")
 		} else if got, want := pos1.Index, pos0.Index; got != want {
 			t.Fatalf("Index=%v, want %v", got, want)
-		} else if got, want := pos1.Offset, pos0.Offset+4096+litestream.WALFrameHeaderSize; got != want {
+		} else if got, want := pos1.Offset, pos0.Offset+4096+WALFrameHeaderSize; got != want {
 			t.Fatalf("Offset=%v, want %v", got, want)
 		}
 	})
@@ -244,7 +242,7 @@ func TestDB_Sync(t *testing.T) {
 		pos0 := db.Pos()
 
 		// Checkpoint & fully close which should close WAL file.
-		if err := db.Checkpoint(context.Background(), litestream.CheckpointModeTruncate); err != nil {
+		if err := db.Checkpoint(context.Background(), CheckpointModeTruncate); err != nil {
 			t.Fatal(err)
 		} else if err := db.Close(); err != nil {
 			t.Fatal(err)
@@ -351,7 +349,7 @@ func TestDB_Sync(t *testing.T) {
 			shadowWALPath := db.ShadowWALPath(pos0.Generation, pos0.Index)
 			if buf, err := os.ReadFile(shadowWALPath); err != nil {
 				t.Fatal(err)
-			} else if err := os.WriteFile(shadowWALPath, append(buf[:litestream.WALHeaderSize-8], 0, 0, 0, 0, 0, 0, 0, 0), 0600); err != nil {
+			} else if err := os.WriteFile(shadowWALPath, append(buf[:WALHeaderSize-8], 0, 0, 0, 0, 0, 0, 0, 0), 0600); err != nil {
 				t.Fatal(err)
 			}
 
@@ -474,29 +472,29 @@ func TestDB_Sync(t *testing.T) {
 }
 
 // MustOpenDBs returns a new instance of a DB & associated SQL DB.
-func MustOpenDBs(tb testing.TB) (*litestream.DB, *sql.DB) {
+func MustOpenDBs(tb testing.TB) (*DB, *sql.DB) {
 	tb.Helper()
 	db := MustOpenDB(tb)
 	return db, MustOpenSQLDB(tb, db.Path())
 }
 
 // MustCloseDBs closes db & sqldb and removes the parent directory.
-func MustCloseDBs(tb testing.TB, db *litestream.DB, sqldb *sql.DB) {
+func MustCloseDBs(tb testing.TB, db *DB, sqldb *sql.DB) {
 	tb.Helper()
 	MustCloseDB(tb, db)
 	MustCloseSQLDB(tb, sqldb)
 }
 
 // MustOpenDB returns a new instance of a DB.
-func MustOpenDB(tb testing.TB) *litestream.DB {
+func MustOpenDB(tb testing.TB) *DB {
 	dir := tb.TempDir()
 	return MustOpenDBAt(tb, filepath.Join(dir, "db"))
 }
 
 // MustOpenDBAt returns a new instance of a DB for a given path.
-func MustOpenDBAt(tb testing.TB, path string) *litestream.DB {
+func MustOpenDBAt(tb testing.TB, path string) *DB {
 	tb.Helper()
-	db := litestream.NewDB(path)
+	db := NewDB(path)
 	db.MonitorInterval = 0 // disable background goroutine
 	if err := db.Open(); err != nil {
 		tb.Fatal(err)
@@ -505,7 +503,7 @@ func MustOpenDBAt(tb testing.TB, path string) *litestream.DB {
 }
 
 // MustCloseDB closes db and removes its parent directory.
-func MustCloseDB(tb testing.TB, db *litestream.DB) {
+func MustCloseDB(tb testing.TB, db *DB) {
 	tb.Helper()
 	if err := db.Close(); err != nil && !strings.Contains(err.Error(), `database is closed`) {
 		tb.Fatal(err)
