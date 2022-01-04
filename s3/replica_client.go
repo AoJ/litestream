@@ -721,7 +721,7 @@ var (
 	filebaseRegex     = regexp.MustCompile(`^(?:(.+)\.)?s3.filebase.com$`)
 	digitalOceanRegex = regexp.MustCompile(`^(?:(.+)\.)?([^.]+)\.digitaloceanspaces.com$`)
 	linodeRegex       = regexp.MustCompile(`^(?:(.+)\.)?([^.]+)\.linodeobjects.com$`)
-	otherDomainRegex  = regexp.MustCompile(`^([^.]+)\.([^.]+\.[^.]+)(:[0-9]+)?$`)
+	otherDomainRegex  = regexp.MustCompile(`^([^.]+)\.([^:/]+)(:[0-9]+)?$`)
 )
 
 func isNotExists(err error) bool {
