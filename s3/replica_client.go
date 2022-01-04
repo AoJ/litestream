@@ -695,6 +695,8 @@ func ParseHost(s string) (bucket, region, endpoint string, forcePathStyle bool) 
 	} else if a := linodeRegex.FindStringSubmatch(host); a != nil {
 		bucket, region = a[1], a[2]
 		endpoint = fmt.Sprintf("%s.linodeobjects.com", region)
+	} else if a := otherDomainRegex.FindStringSubmatch(host); a != nil {
+		bucket, endpoint = a[1], a[2]
 	} else {
 		bucket = host
 		forcePathStyle = false
@@ -719,6 +721,7 @@ var (
 	filebaseRegex     = regexp.MustCompile(`^(?:(.+)\.)?s3.filebase.com$`)
 	digitalOceanRegex = regexp.MustCompile(`^(?:(.+)\.)?([^.]+)\.digitaloceanspaces.com$`)
 	linodeRegex       = regexp.MustCompile(`^(?:(.+)\.)?([^.]+)\.linodeobjects.com$`)
+	otherDomainRegex  = regexp.MustCompile(`^([^.]+)\.([^.]+\.[^.]+)(:[0-9]+)?$`)
 )
 
 func isNotExists(err error) bool {
